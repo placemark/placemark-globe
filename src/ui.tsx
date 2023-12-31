@@ -3,6 +3,8 @@ import {
   Columns,
   Container,
   render,
+  Text,
+  Toggle,
   VerticalSpace,
 } from "@create-figma-plugin/ui";
 // import land110 from "./land-110m.json";
@@ -10,7 +12,7 @@ import countries110 from "./countries-110m.json";
 import land50 from "./land-50m.json";
 import countries50 from "./countries-50m.json";
 import { emit } from "@create-figma-plugin/utilities";
-import { h } from "preact";
+import { h, JSX } from "preact";
 import { useCallback, useState } from "preact/hooks";
 import versor from "versor";
 import * as topojson from "topojson-client";
@@ -53,6 +55,8 @@ function drag(projection: any) {
 }
 
 function Plugin() {
+  const [hires, setHires] = useState(true);
+
   const handleCloseButtonClick = useCallback(function () {
     emit<CloseHandler>("CLOSE");
   }, []);
@@ -61,6 +65,8 @@ function Plugin() {
     // This is based off of Versor Dragging:
     // https://observablehq.com/d/569d101dd5bd332b
     if (elem) {
+      d3.select(elem).html("");
+
       const projection = d3.geoOrthographic().precision(0.1);
 
       const [[x0, y0], [x1, y1]] = d3
@@ -81,7 +87,7 @@ function Plugin() {
         if (update) {
           emit<CreateHandler>(
             "CREATE",
-            countries.features.flatMap((f) => {
+            (hires ? countries : countriesRes).features.flatMap((f) => {
               const p = path(f);
               if (p) {
                 return { d: path(f), name: f.properties?.name };
@@ -130,6 +136,15 @@ function Plugin() {
       <VerticalSpace space="small" />
       <svg width={300} height={300} ref={globeRef}></svg>
       <VerticalSpace space="extraLarge" />
+      <Toggle
+        onChange={function (event: JSX.TargetedEvent<HTMLInputElement>) {
+          setHires(event.currentTarget.checked);
+        }}
+        value={hires}
+      >
+        <Text>High resolution</Text>
+      </Toggle>
+      <VerticalSpace space="small" />
       <Columns space="extraSmall">
         <Button fullWidth onClick={handleCloseButtonClick} secondary>
           Close

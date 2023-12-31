@@ -56,7 +56,7 @@ export default function () {
     figma.closePlugin();
   });
   showUI({
-    height: 415,
+    height: 435,
     width: 340,
   });
 }

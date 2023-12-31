@@ -108,8 +108,8 @@ function Plugin() {
         })
         .call(
           drag(projection)
-            .on("drag.render", () => render())
-            .on("end.render", () => render(true)),
+            .on("drag.render", () => render(false))
+            .on("end.render", () => render(true)) as any,
         )
         .call(() => render(true))
         .node();

@@ -5,8 +5,10 @@ import {
   render,
   VerticalSpace,
 } from "@create-figma-plugin/ui";
-import land110 from "./land-110m.json";
+// import land110 from "./land-110m.json";
 import countries110 from "./countries-110m.json";
+import land50 from "./land-50m.json";
+import countries50 from "./countries-50m.json";
 import { emit } from "@create-figma-plugin/utilities";
 import { h } from "preact";
 import { useCallback, useState } from "preact/hooks";
@@ -20,10 +22,16 @@ import { ExtendedFeatureCollection } from "d3-geo";
 const sphere = { type: "Sphere" } as const;
 const width = 300;
 
-const land = topojson.feature(land110, land110.objects.land);
-const countries = topojson.feature(
+// const landRes = topojson.feature(land110, land110.objects.land);
+const countriesRes = topojson.feature(
   countries110,
   countries110.objects.countries,
+) as unknown as ExtendedFeatureCollection;
+
+const land = topojson.feature(land50, land50.objects.land);
+const countries = topojson.feature(
+  countries50,
+  countries50.objects.countries,
 ) as unknown as ExtendedFeatureCollection;
 
 // TODO: types…
@@ -99,7 +107,7 @@ function Plugin() {
             .attr("fill", "#222")
             .attr("d", path);
           el.selectAll("path.country")
-            .data(countries.features)
+            .data(countriesRes.features)
             .join("path")
             .attr("class", "country")
             .attr("stroke", "#fff")

@@ -31,7 +31,8 @@ export default function () {
       const paths = data
         .split("Z")
         .map((s) => s.trim())
-        .filter(Boolean);
+        .filter(Boolean)
+        .map((s) => (s + " Z").trim());
       vec.vectorPaths = paths.map((data) => {
         return {
           windingRule: "EVENODD",

@@ -4,5 +4,5 @@
 
 ![Cover image](./marketing/cover.png)
 
-The Placemark Figma plugin's little brother: generates
+[The Placemark Figma plugin](https://www.figma.com/community/plugin/1189962635826293304/placemark)'s little brother: generates
 custom globes.

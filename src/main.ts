@@ -13,13 +13,42 @@ export default function () {
   globe.resize(300, 300);
   frame.appendChild(globe);
 
-  on<CreateHandler>("CREATE", function (features) {
+  on<CreateHandler>("CREATE", function (features, graticule) {
     const nodes: Array<SceneNode> = [];
     frame.children.forEach((child) => {
       if (child.getPluginData("globe-id")) {
         child.remove();
       }
     });
+
+    if (graticule) {
+      let vec = figma.createVector();
+
+      vec.setPluginData("globe-id", "graticule");
+
+      const data = graticule
+        .replace(/,/g, " ")
+        .replace(/(L|M|Z)/g, " $1 ")
+        .trim();
+      const paths = data
+        .split("Z")
+        .map((s) => s.trim())
+        .filter(Boolean)
+        .map((s) => (s + " Z").trim());
+      vec.vectorPaths = paths.map((data) => {
+        return {
+          windingRule: "EVENODD",
+          data,
+        };
+      });
+      vec.strokes = [
+        {
+          color: { b: 0.5, g: 0.5, r: 0.5 },
+          type: "SOLID",
+        },
+      ];
+      frame.appendChild(vec);
+    }
 
     for (const feature of features) {
       let vec = figma.createVector();

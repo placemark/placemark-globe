@@ -15,7 +15,13 @@ import land50 from "./land-50m.json";
 import countries50 from "./countries-50m.json";
 import { emit } from "@create-figma-plugin/utilities";
 import { h, JSX } from "preact";
-import { useCallback, useRef, useState } from "preact/hooks";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "preact/hooks";
 import versor from "versor";
 import * as topojson from "topojson-client";
 import * as d3 from "d3";
@@ -58,18 +64,22 @@ function drag(projection: any) {
 
 function Plugin() {
   const [hires, setHires] = useState(true);
+  const [graticule, setGraticule] = useState(true);
 
-  const projection = d3.geoOrthographic().precision(0.1);
-  const path = d3.geoPath(projection);
+  const projection = useMemo(() => {
+    const projection = d3.geoOrthographic().precision(0.1);
+
+    const [[x0, y0], [x1, y1]] = d3
+      .geoPath(projection.fitWidth(width, sphere))
+      .bounds(sphere);
+
+    const dy = Math.ceil(y1 - y0),
+      l = Math.min(Math.ceil(x1 - x0), dy);
+    projection.scale((projection.scale() * (l - 1)) / l).precision(0.2);
+    return projection;
+  }, []);
+  const path = useMemo(() => d3.geoPath(projection), []);
   const elemRef = useRef<SVGSVGElement | null>(null);
-
-  const [[x0, y0], [x1, y1]] = d3
-    .geoPath(projection.fitWidth(width, sphere))
-    .bounds(sphere);
-
-  const dy = Math.ceil(y1 - y0),
-    l = Math.min(Math.ceil(x1 - x0), dy);
-  projection.scale((projection.scale() * (l - 1)) / l).precision(0.2);
 
   function render(elem: SVGSVGElement, hires = false, update: boolean = false) {
     d3.select(elem)
@@ -78,7 +88,11 @@ function Plugin() {
     d3.select(elem)
       .selectAll("path.country")
       .attr("d", path as any);
+    d3.select(elem)
+      .selectAll("path.graticule")
+      .attr("d", path as any);
     if (update) {
+      const graticulePath = graticule ? path(d3.geoGraticule()()) : null;
       emit<CreateHandler>(
         "CREATE",
         (hires ? countries : countriesRes).features.flatMap((f) => {
@@ -89,6 +103,7 @@ function Plugin() {
             return [];
           }
         }) as any,
+        graticulePath,
       );
     }
   }
@@ -97,11 +112,11 @@ function Plugin() {
     emit<CloseHandler>("CLOSE");
   }, []);
 
-  function globeRef(elem: SVGSVGElement | null) {
+  useEffect(() => {
     // This is based off of Versor Dragging:
     // https://observablehq.com/d/569d101dd5bd332b
-    if (elem) {
-      elemRef.current = elem;
+    if (elemRef.current) {
+      const elem = elemRef.current;
       d3.select(elem).html("");
 
       d3.select(elem)
@@ -116,6 +131,12 @@ function Plugin() {
             .attr("class", "land")
             .attr("stroke", "#fff")
             .attr("fill", "#222")
+            .attr("d", path);
+          el.append("path")
+            .datum(d3.geoGraticule())
+            .attr("class", "graticule")
+            .attr("stroke", "#222")
+            .attr("fill", "none")
             .attr("d", path);
           el.selectAll("path.country")
             .data(countriesRes.features)
@@ -133,7 +154,7 @@ function Plugin() {
         .call(() => render(elem, hires, true))
         .node();
     }
-  }
+  }, [elemRef.current]);
 
   const countryOptions: DropdownOption[] = [
     ...[{ header: "Zoom to country" }],
@@ -152,7 +173,7 @@ function Plugin() {
     <Container space="medium">
       <VerticalSpace space="large" />
       <VerticalSpace space="small" />
-      <svg width={300} height={300} ref={globeRef}></svg>
+      <svg width={300} height={300} ref={elemRef}></svg>
       <VerticalSpace space="extraLarge" />
       <Toggle
         onChange={function (event: JSX.TargetedEvent<HTMLInputElement>) {
@@ -161,6 +182,15 @@ function Plugin() {
         value={hires}
       >
         <Text>High resolution</Text>
+      </Toggle>
+      <VerticalSpace space="small" />
+      <Toggle
+        onChange={function (event: JSX.TargetedEvent<HTMLInputElement>) {
+          setGraticule(event.currentTarget.checked);
+        }}
+        value={graticule}
+      >
+        <Text>Graticule lines</Text>
       </Toggle>
       <VerticalSpace space="small" />
       <Dropdown

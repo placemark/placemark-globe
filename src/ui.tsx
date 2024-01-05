@@ -2,6 +2,8 @@ import {
   Button,
   Columns,
   Container,
+  Dropdown,
+  DropdownOption,
   render,
   Text,
   Toggle,
@@ -13,7 +15,7 @@ import land50 from "./land-50m.json";
 import countries50 from "./countries-50m.json";
 import { emit } from "@create-figma-plugin/utilities";
 import { h, JSX } from "preact";
-import { useCallback, useState } from "preact/hooks";
+import { useCallback, useRef, useState } from "preact/hooks";
 import versor from "versor";
 import * as topojson from "topojson-client";
 import * as d3 from "d3";
@@ -57,6 +59,40 @@ function drag(projection: any) {
 function Plugin() {
   const [hires, setHires] = useState(true);
 
+  const projection = d3.geoOrthographic().precision(0.1);
+  const path = d3.geoPath(projection);
+  const elemRef = useRef<SVGSVGElement | null>(null);
+
+  const [[x0, y0], [x1, y1]] = d3
+    .geoPath(projection.fitWidth(width, sphere))
+    .bounds(sphere);
+
+  const dy = Math.ceil(y1 - y0),
+    l = Math.min(Math.ceil(x1 - x0), dy);
+  projection.scale((projection.scale() * (l - 1)) / l).precision(0.2);
+
+  function render(elem: SVGSVGElement, hires = false, update: boolean = false) {
+    d3.select(elem)
+      .selectAll("path.land")
+      .attr("d", path as any);
+    d3.select(elem)
+      .selectAll("path.country")
+      .attr("d", path as any);
+    if (update) {
+      emit<CreateHandler>(
+        "CREATE",
+        (hires ? countries : countriesRes).features.flatMap((f) => {
+          const p = path(f);
+          if (p) {
+            return { d: path(f), name: f.properties?.name };
+          } else {
+            return [];
+          }
+        }) as any,
+      );
+    }
+  }
+
   const handleCloseButtonClick = useCallback(function () {
     emit<CloseHandler>("CLOSE");
   }, []);
@@ -65,39 +101,8 @@ function Plugin() {
     // This is based off of Versor Dragging:
     // https://observablehq.com/d/569d101dd5bd332b
     if (elem) {
+      elemRef.current = elem;
       d3.select(elem).html("");
-
-      const projection = d3.geoOrthographic().precision(0.1);
-
-      const [[x0, y0], [x1, y1]] = d3
-        .geoPath(projection.fitWidth(width, sphere))
-        .bounds(sphere);
-      const dy = Math.ceil(y1 - y0),
-        l = Math.min(Math.ceil(x1 - x0), dy);
-      projection.scale((projection.scale() * (l - 1)) / l).precision(0.2);
-      const path = d3.geoPath(projection);
-
-      const render = (update: boolean = false) => {
-        d3.select(elem)
-          .selectAll("path.land")
-          .attr("d", path as any);
-        d3.select(elem)
-          .selectAll("path.country")
-          .attr("d", path as any);
-        if (update) {
-          emit<CreateHandler>(
-            "CREATE",
-            (hires ? countries : countriesRes).features.flatMap((f) => {
-              const p = path(f);
-              if (p) {
-                return { d: path(f), name: f.properties?.name };
-              } else {
-                return [];
-              }
-            }) as any,
-          );
-        }
-      };
 
       d3.select(elem)
         .call((el) => {
@@ -122,13 +127,26 @@ function Plugin() {
         })
         .call(
           drag(projection)
-            .on("drag.render", () => render(false))
-            .on("end.render", () => render(true)) as any,
+            .on("drag.render", () => render(elem, hires, false))
+            .on("end.render", () => render(elem, hires, true)) as any,
         )
-        .call(() => render(true))
+        .call(() => render(elem, hires, true))
         .node();
     }
   }
+
+  const countryOptions: DropdownOption[] = [
+    ...[{ header: "Zoom to country" }],
+    ...countries.features
+      .map((c) => {
+        return c.properties?.name;
+      })
+      .filter(Boolean)
+      .sort()
+      .map((name) => {
+        return { value: name as string };
+      }),
+  ];
 
   return (
     <Container space="medium">
@@ -144,6 +162,24 @@ function Plugin() {
       >
         <Text>High resolution</Text>
       </Toggle>
+      <VerticalSpace space="small" />
+      <Dropdown
+        placeholder="Zoom to country"
+        onChange={(e) => {
+          const name = (e.target as HTMLSelectElement).value;
+          const country = countries.features.find((c) => {
+            return c.properties?.name === name;
+          });
+          if (!country) return;
+          const centroid = d3.geoCentroid(country);
+          projection.angle(0);
+          projection.rotate([-centroid[0], -centroid[1]]);
+          if (!elemRef.current) return;
+          render(elemRef.current, hires, true);
+        }}
+        value={null}
+        options={countryOptions}
+      />
       <VerticalSpace space="small" />
       <Columns space="extraSmall">
         <Button fullWidth onClick={handleCloseButtonClick} secondary>

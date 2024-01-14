@@ -9,8 +9,7 @@
     "d3": "^7.8.5",
     "d3-geo": "^3.1.0",
     "preact": ">=10",
-    "topojson-client": "^3.1.0",
-    "versor": "^0.2.0"
+    "topojson-client": "^3.1.0"
   },
   "devDependencies": {
     "@create-figma-plugin/build": "^3.1.0",
@@ -27,8 +26,8 @@
     "editorType": [
       "figma"
     ],
-    "id": "preact-rectangles",
-    "name": "Preact Rectangles",
+    "id": "placemark",
+    "name": "Placemark",
     "main": "src/main.ts",
     "ui": "src/ui.tsx"
   },

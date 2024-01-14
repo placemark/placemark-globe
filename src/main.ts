@@ -11,6 +11,18 @@ export default function () {
 
   const globe = figma.createEllipse();
   globe.resize(300, 300);
+  globe.strokes = [
+    {
+      color: figma.util.rgb("rgb(100, 100, 100)"),
+      type: "SOLID",
+    },
+  ];
+  globe.fills = [
+    {
+      color: figma.util.rgb("rgb(245, 245, 245)"),
+      type: "SOLID",
+    },
+  ];
   frame.appendChild(globe);
 
   on<CreateHandler>("CREATE", function (features, graticule) {
@@ -21,6 +33,7 @@ export default function () {
       }
     });
 
+    /*
     if (graticule) {
       let vec = figma.createVector();
 
@@ -43,12 +56,13 @@ export default function () {
       });
       vec.strokes = [
         {
-          color: { b: 0.5, g: 0.5, r: 0.5 },
+          color: figma.util.rgb("rgb(13, 153, 255)"),
           type: "SOLID",
         },
       ];
       frame.appendChild(vec);
     }
+    */
 
     for (const feature of features) {
       let vec = figma.createVector();
@@ -68,9 +82,15 @@ export default function () {
           data,
         };
       });
+      vec.strokes = [
+        {
+          color: figma.util.rgb("rgb(255, 255, 255)"),
+          type: "SOLID",
+        },
+      ];
       vec.fills = [
         {
-          color: { b: 0.9, g: 0.4, r: 0.4 },
+          color: figma.util.rgb("rgb(13, 153, 255)"),
           type: "SOLID",
         },
       ];

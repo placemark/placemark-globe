@@ -1,47 +1,35 @@
 import { Container, render, VerticalSpace } from "@create-figma-plugin/ui";
 // import land110 from "./land-110m.json";
+// import land50 from "./land-50m.json";
 import countries110 from "./countries-110m.json";
-import land50 from "./land-50m.json";
 import countries50 from "./countries-50m.json";
 import { emit } from "@create-figma-plugin/utilities";
-import { h, JSX } from "preact";
-import {
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from "preact/hooks";
+import { h } from "preact";
+import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 import * as topojson from "topojson-client";
 import * as d3 from "d3";
-import { CloseHandler, CreateHandler } from "./types";
+import { CreateHandler } from "./types";
 import { ExtendedFeatureCollection } from "d3-geo";
 
 /**
  * This learns from a lot of examples!
  * https://observablehq.com/@michael-keith/draggable-globe-in-d3
  */
-
 const sphere = { type: "Sphere" } as const;
 const width = 300;
 const sensitivity = 75;
 
-// const landRes = topojson.feature(land110, land110.objects.land);
-const countriesRes = topojson.feature(
+const countriesHi = topojson.feature(
   countries110,
   countries110.objects.countries,
 ) as unknown as ExtendedFeatureCollection;
 
-const land = topojson.feature(land50, land50.objects.land);
-const countries = topojson.feature(
+const countriesLo = topojson.feature(
   countries50,
   countries50.objects.countries,
 ) as unknown as ExtendedFeatureCollection;
 
 function Plugin() {
-  const [hires, setHires] = useState(true);
-  const [graticule, setGraticule] = useState(false);
-
   const projection = useMemo(() => {
     const projection = d3.geoOrthographic().precision(0.1);
 
@@ -68,15 +56,10 @@ function Plugin() {
       dragging?: boolean;
     },
   ) {
-    /*
-    d3.select(elem)
-      .selectAll("path.land")
-      .attr("d", path as any);
-      */
     d3.select(d3.select(elem).select("g#content").node())
       .selectAll("path.country")
       .data(
-        dragging ? countries.features : countriesRes.features,
+        dragging ? countriesLo.features : countriesHi.features,
         (feature) => {
           return feature.id;
         },
@@ -87,16 +70,11 @@ function Plugin() {
       .attr("stroke-width", "0.5")
       .attr("fill", "#0D99FF")
       .attr("d", path as any);
-    /*
-    d3.select(elem)
-      .selectAll("path.graticule")
-      .attr("d", path as any);
-      */
+
     if (update) {
-      const graticulePath = graticule ? path(d3.geoGraticule()()) : null;
       emit<CreateHandler>(
         "CREATE",
-        (hires ? countries : countriesRes).features.flatMap((f) => {
+        countriesLo.features.flatMap((f) => {
           const p = path(f);
           if (p) {
             return { d: path(f), name: f.properties?.name };
@@ -104,14 +82,11 @@ function Plugin() {
             return [];
           }
         }) as any,
-        graticulePath,
       );
     }
   }
 
   useEffect(() => {
-    // This is based off of Versor Dragging:
-    // https://observablehq.com/d/569d101dd5bd332b
     if (elemRef.current) {
       const elem = elemRef.current;
       d3.select(elem).html("");
@@ -123,23 +98,7 @@ function Plugin() {
             .attr("stroke", "none")
             .attr("fill", "#F5F5F5")
             .attr("d", path);
-          const contentG = el.append("g").attr("id", "content");
-          /*
-          contentG
-            .append("path")
-            .datum(land)
-            .attr("class", "land")
-            .attr("fill", "#0D99FF")
-            .attr("d", path);
-            */
-          /*
-          el.append("path")
-            .datum(d3.geoGraticule())
-            .attr("class", "graticule")
-            .attr("stroke", "#222")
-            .attr("fill", "none")
-            .attr("d", path);
-            */
+
           el.append("path")
             .datum(sphere)
             .attr("class", "sphere-stroke")
@@ -193,52 +152,6 @@ function Plugin() {
       <VerticalSpace space="small" />
       <svg width={300} height={300} ref={elemRef}></svg>
       <VerticalSpace space="extraLarge" />
-      {/*
-      <Toggle
-        onChange={function (event: JSX.TargetedEvent<HTMLInputElement>) {
-          setHires(event.currentTarget.checked);
-        }}
-        value={hires}
-      >
-        <Text>High resolution</Text>
-      </Toggle>
-      <VerticalSpace space="small" />
-      <Toggle
-        onChange={function (event: JSX.TargetedEvent<HTMLInputElement>) {
-          setGraticule(event.currentTarget.checked);
-        }}
-        value={graticule}
-      >
-        <Text>Graticule lines</Text>
-      </Toggle>
-      */}
-      {/*
-      <VerticalSpace space="small" />
-      <Dropdown
-        placeholder="Zoom to country"
-        onChange={(e) => {
-          const name = (e.target as HTMLSelectElement).value;
-          const country = countries.features.find((c) => {
-            return c.properties?.name === name;
-          });
-          if (!country) return;
-          const centroid = d3.geoCentroid(country);
-          projection.angle(0);
-          projection.rotate([-centroid[0], -centroid[1]]);
-          if (!elemRef.current) return;
-          render(elemRef.current, hires, true);
-        }}
-        value={null}
-        options={countryOptions}
-      />
-      <VerticalSpace space="small" />
-      <Columns space="extraSmall">
-        <Button fullWidth onClick={handleCloseButtonClick} secondary>
-          Close
-        </Button>
-      </Columns>
-      <VerticalSpace space="small" />
-      */}
     </Container>
   );
 }

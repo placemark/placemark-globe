@@ -1,8 +1,10 @@
 import { EventHandler } from "@create-figma-plugin/utilities";
 
+type Shape = { d: string | string[]; name: string };
+
 export interface CreateHandler extends EventHandler {
   name: "CREATE";
-  handler: (shapes: { d: string; name: string }[]) => void;
+  handler: (shapes: Shape[]) => void;
 }
 
 export interface CloseHandler extends EventHandler {

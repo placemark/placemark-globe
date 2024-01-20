@@ -75,11 +75,40 @@ function Plugin() {
       emit<CreateHandler>(
         "CREATE",
         countriesLo.features.flatMap((f) => {
-          const p = path(f);
-          if (p) {
-            return { d: path(f), name: f.properties?.name };
+          // Countries with multiple polygons should be separate
+          // shapes. d3 will generate complex polygons here - we
+          // want to instead generate a group in Figma.
+          if (f.geometry?.type === "MultiPolygon") {
+            const d = f.geometry.coordinates
+              .map((coordinates) => {
+                return path({
+                  type: "Polygon",
+                  coordinates,
+                });
+              })
+              .filter(Boolean);
+            // If this country is entirely obscured,
+            // don't send it.
+            if (!d.length) return [];
+            // If there was only one visible element,
+            // don't create a group.
+            if (d.length === 1) {
+              return {
+                d: d[0],
+                name: f.properties?.name,
+              };
+            }
+            return {
+              d: d,
+              name: f.properties?.name,
+            };
           } else {
-            return [];
+            const d = path(f);
+            if (d) {
+              return { d, name: f.properties?.name };
+            } else {
+              return [];
+            }
           }
         }) as any,
       );
@@ -98,6 +127,11 @@ function Plugin() {
             .attr("stroke", "none")
             .attr("fill", "#F5F5F5")
             .attr("d", path);
+
+          /**
+           * This is targeted indirectly.
+           */
+          const contentG = el.append("g").attr("id", "content");
 
           el.append("path")
             .datum(sphere)

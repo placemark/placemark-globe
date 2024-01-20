@@ -26,8 +26,13 @@
     "editorType": [
       "figma"
     ],
-    "id": "placemark",
-    "name": "Placemark",
+    "id": "1323092380415927575",
+    "networkAccess": {
+      "allowedDomains": [
+        "none"
+      ]
+    },
+    "name": "Placemark Globe",
     "main": "src/main.ts",
     "ui": "src/ui.tsx"
   },

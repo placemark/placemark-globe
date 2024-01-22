@@ -1,2 +1,2 @@
 dev:
-  npm run watch
+  pnpm run watch

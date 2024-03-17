@@ -1,10 +1,15 @@
-import { Container, render, VerticalSpace } from "@create-figma-plugin/ui";
-// import land110 from "./land-110m.json";
-// import land50 from "./land-50m.json";
+import {
+  Container,
+  Dropdown,
+  render,
+  VerticalSpace,
+} from "@create-figma-plugin/ui";
 import countries110 from "./countries-110m.json";
 import countries50 from "./countries-50m.json";
+import countries110v from "./countries-110m-v.json";
+import countries50v from "./countries-50m-v.json";
 import { emit } from "@create-figma-plugin/utilities";
-import { h } from "preact";
+import { h, JSX } from "preact";
 import { useEffect, useMemo, useRef, useState } from "preact/hooks";
 import * as topojson from "topojson-client";
 import * as d3 from "d3";
@@ -19,17 +24,34 @@ const sphere = { type: "Sphere" } as const;
 const width = 300;
 const sensitivity = 75;
 
+const countriesHiV = topojson.feature(
+  countries110v as any,
+  countries110v.objects.countries as any,
+) as unknown as ExtendedFeatureCollection;
+
 const countriesHi = topojson.feature(
-  countries110,
-  countries110.objects.countries,
+  countries110 as any,
+  countries110.objects.countries as any,
+) as unknown as ExtendedFeatureCollection;
+
+const countriesLoV = topojson.feature(
+  countries50v as any,
+  countries50v.objects.countries as any,
 ) as unknown as ExtendedFeatureCollection;
 
 const countriesLo = topojson.feature(
-  countries50,
-  countries50.objects.countries,
+  countries50 as any,
+  countries50.objects.countries as any,
 ) as unknown as ExtendedFeatureCollection;
 
+type Dataset = "visionscarto" | "natural-earth";
+
 function Plugin() {
+  const [dataset, setDataset] = useState<Dataset>("visionscarto");
+
+  const hiCountries = dataset === "natural-earth" ? countriesHi : countriesHiV;
+  const loCountries = dataset === "natural-earth" ? countriesLo : countriesLoV;
+
   const projection = useMemo(() => {
     const projection = d3.geoOrthographic().precision(0.1);
 
@@ -46,6 +68,14 @@ function Plugin() {
   const path = useMemo(() => d3.geoPath(projection), []);
   const elemRef = useRef<SVGSVGElement | null>(null);
 
+  function handleChange(event: JSX.TargetedEvent<HTMLInputElement>) {
+    const newValue = event.currentTarget.value;
+    setDataset(newValue as Dataset);
+    if (elemRef.current) {
+      render(elemRef.current, { update: true });
+    }
+  }
+
   function render(
     elem: SVGSVGElement,
     {
@@ -59,8 +89,8 @@ function Plugin() {
     d3.select(d3.select(elem).select("g#content").node())
       .selectAll("path.country")
       .data(
-        dragging ? countriesLo.features : countriesHi.features,
-        (feature) => {
+        dragging ? loCountries.features : hiCountries.features,
+        (feature: any) => {
           return feature.id;
         },
       )
@@ -74,7 +104,7 @@ function Plugin() {
     if (update) {
       emit<CreateHandler>(
         "CREATE",
-        countriesLo.features.flatMap((f) => {
+        loCountries.features.flatMap((f) => {
           // Countries with multiple polygons should be separate
           // shapes. d3 will generate complex polygons here - we
           // want to instead generate a group in Figma.
@@ -186,6 +216,29 @@ function Plugin() {
       <VerticalSpace space="small" />
       <svg width={300} height={300} ref={elemRef}></svg>
       <VerticalSpace space="extraLarge" />
+
+      <Dropdown
+        onChange={handleChange}
+        options={[
+          {
+            value: "visionscarto",
+          },
+          {
+            value: "natural-earth",
+          },
+        ]}
+        value={dataset}
+      />
+      <VerticalSpace space="medium" />
+      <div>
+        <a
+          target="blank"
+          rel="noreferrer"
+          href="https://gist.github.com/tmcw/22a083572f3ef478a64dce17680def08"
+        >
+          About data sources
+        </a>
+      </div>
     </Container>
   );
 }

@@ -1,7 +1,3 @@
-import { on, once, showUI } from "@create-figma-plugin/utilities";
-
-import { CloseHandler, CreateHandler } from "./types";
-
 function transformD(d: string) {
   const data = d
     .replace(/,/g, " ")
@@ -68,63 +64,104 @@ export default function () {
     vec.name = name;
     return vec;
   }
-
-  on<CreateHandler>("CREATE", function (features) {
-    const nodes: Array<SceneNode> = [];
-    frame.children.forEach((child) => {
-      child.remove();
-    });
-
-    /**
-     * Create the globe
-     * --------------------------------------------------------------------------
-     */
-    const globe = figma.createEllipse();
-    globe.resize(300, 300);
-    globe.strokes = [];
-    globe.fills = [
-      {
-        color: figma.util.rgb("rgb(245, 245, 245)"),
-        type: "SOLID",
-      },
-    ];
-    globe.constraints = { horizontal: "SCALE", vertical: "SCALE" };
-    frame.appendChild(globe);
-
-    for (const feature of features) {
-      if (Array.isArray(feature.d)) {
-        const vecs = feature.d.map((d) => {
-          const vec = makeCountryVector(d, feature.name);
-          nodes.push(vec);
-          return vec;
+  figma.ui.onmessage = (msg) => {
+    switch (msg.type) {
+      case "CREATE": {
+        const features = msg.features;
+        const nodes: Array<SceneNode> = [];
+        frame.children.forEach((child) => {
+          child.remove();
         });
 
-        const g = figma.group(vecs, frame);
-        g.name = feature.name;
-      } else {
-        const vec = makeCountryVector(feature.d, feature.name);
-        frame.appendChild(vec);
-        nodes.push(vec);
+        /**
+         * Create the globe
+         * --------------------------------------------------------------------------
+         */
+        const globe = figma.createEllipse();
+        globe.resize(300, 300);
+        globe.strokes = [];
+        globe.fills = [
+          {
+            color: figma.util.rgb("rgb(245, 245, 245)"),
+            type: "SOLID",
+          },
+        ];
+        globe.constraints = { horizontal: "SCALE", vertical: "SCALE" };
+        frame.appendChild(globe);
+
+        for (const feature of features) {
+          if (Array.isArray(feature.d)) {
+            const vecs = feature.d.map((d) => {
+              const vec = makeCountryVector(d, feature.name);
+              nodes.push(vec);
+              return vec;
+            });
+
+            const g = figma.group(vecs, frame);
+            g.name = feature.name;
+          } else {
+            const vec = makeCountryVector(feature.d, feature.name);
+            frame.appendChild(vec);
+            nodes.push(vec);
+          }
+        }
+        const rim = figma.createEllipse();
+        rim.resize(300, 300);
+        rim.strokes = [
+          {
+            color: figma.util.rgb("rgb(100, 100, 100)"),
+            type: "SOLID",
+          },
+        ];
+        rim.fills = [];
+        rim.constraints = { horizontal: "SCALE", vertical: "SCALE" };
+        frame.appendChild(rim);
+        frame.setPluginData("rendered", "true");
       }
     }
-    const rim = figma.createEllipse();
-    rim.resize(300, 300);
-    rim.strokes = [
-      {
-        color: figma.util.rgb("rgb(100, 100, 100)"),
-        type: "SOLID",
-      },
-    ];
-    rim.fills = [];
-    rim.constraints = { horizontal: "SCALE", vertical: "SCALE" };
-    frame.appendChild(rim);
-    frame.setPluginData("rendered", "true");
-  });
-  once<CloseHandler>("CLOSE", function () {
-    figma.closePlugin();
-  });
-  showUI({
-    height: 420,
-    width: 340,
-  });
+  };
+  figma.showUI(
+    `<html>
+  <style>
+    body {
+      font-family: "Inter", "Helvetica", sans-serif;
+      font-size: 12px;
+    }
+    select {
+      font: inherit;
+      width: 100%;
+      border: 1px solid #ccc;
+      border-radius: 0;
+    }
+  </style>
+  <script type="module" src="./ui.ts"></script>
+
+  <div style="padding: 10px">
+    <svg data-target="globe" style="height: 300px; width: 300px"></svg>
+    <div style="padding-top: 10px">
+      <label style="padding-bottom: 5px; display: block" for="dataset-selector"
+        >Dataset</label
+      >
+      <select id="dataset-selector" data-target="dataset-selector">
+        <option value="visionscarto">visionscarto</option>
+        <option value="naturalearth">naturalearth</option>
+      </select>
+    </div>
+    <div style="padding-top: 10px">
+      <a
+        style="color: blue"
+        target="blank"
+        rel="noreferrer"
+        href="https://gist.github.com/tmcw/22a083572f3ef478a64dce17680def08"
+      >
+        About data sources
+      </a>
+    </div>
+  </div>
+</html>`,
+    {
+      height: 420,
+      width: 340,
+    },
+  );
 }

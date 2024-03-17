@@ -1,9 +1,11 @@
+import { viteSingleFile } from "vite-plugin-singlefile";
+
 // vite.config.js
 export default {
-  // config options
   root: "src",
+  plugins: [viteSingleFile()],
   build: {
     watch: true,
-    outDir: "dist",
+    outDir: "../dist",
   },
 };

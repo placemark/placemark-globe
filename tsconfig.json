@@ -1,9 +1,10 @@
 {
-  "extends": "@create-figma-plugin/tsconfig",
   "compilerOptions": {
     "resolveJsonModule": true,
     "typeRoots": ["node_modules/@figma", "node_modules/@types"],
-    "noEmit": true
+    "noEmit": true,
+    "target": "ES2020"
   },
+  "module": "ES2020",
   "include": ["src/**/*.ts", "src/**/*.tsx"]
 }

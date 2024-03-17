@@ -1,7 +1,19 @@
 figma.showUI(__html__, {
-  height: 420,
+  height: 460,
   width: 340,
 });
+
+function transformDLine(d: string) {
+  const data = d
+    .replace(/,/g, " ")
+    .replace(/(L|M|Z)/g, " $1 ")
+    .trim();
+  return data
+    .split("Z")
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .map((s) => s.trim());
+}
 
 function transformD(d: string) {
   const data = d
@@ -28,9 +40,12 @@ async function putColorPaint(
   color: Parameters<typeof figma.util.rgb>[0],
   opacity: number = 1,
 ) {
-  if (existingPaints.has(name)) {
-    return existingPaints.get(name);
-  }
+  const styles = await figma.getLocalPaintStylesAsync();
+
+  let existing = styles.find((style) => {
+    return style.name === name;
+  });
+  if (existing) return existing;
 
   const style = figma.createPaintStyle();
   style.name = name;
@@ -41,8 +56,27 @@ async function putColorPaint(
       type: "SOLID",
     },
   ];
-  existingPaints.set(name, style);
   return style;
+}
+
+async function makeGraticuleVector(d: string) {
+  const graticuleStrokeStyle = await putColorPaint(
+    "graticule-stroke",
+    "rgb(200, 200, 200)",
+  );
+  const vec = figma.createVector();
+  vec.vectorPaths = transformDLine(d).map((data) => {
+    return {
+      windingRule: "EVENODD",
+      data,
+    };
+  });
+  await vec.setStrokeStyleIdAsync(graticuleStrokeStyle.id);
+  vec.strokeWeight = 0.5;
+  vec.strokeAlign = "OUTSIDE";
+  vec.constraints = { horizontal: "SCALE", vertical: "SCALE" };
+  vec.name = "Graticule";
+  return vec;
 }
 
 async function makeCountryVector(d: string, name: string) {
@@ -75,6 +109,7 @@ figma.ui.onmessage = async (msg) => {
   switch (msg.type) {
     case "CREATE": {
       const features = msg.features;
+      const graticules = msg.graticules;
       const nodes: Array<SceneNode> = [];
       frame.children.forEach((child) => {
         child.remove();
@@ -96,6 +131,19 @@ figma.ui.onmessage = async (msg) => {
       globe.constraints = { horizontal: "SCALE", vertical: "SCALE" };
       frame.appendChild(globe);
 
+      if (graticules) {
+        const graticuleVecs = [];
+
+        for (const line of graticules) {
+          const graticuleVec = await makeGraticuleVector(line);
+          frame.appendChild(graticuleVec);
+          graticuleVecs.push(graticuleVec);
+        }
+        const g = figma.group(graticuleVecs, frame);
+        g.name = "Graticule";
+        g.expanded = false;
+      }
+
       for (const feature of features) {
         if (Array.isArray(feature.d)) {
           const vecs = [];
@@ -106,6 +154,7 @@ figma.ui.onmessage = async (msg) => {
           }
 
           const g = figma.group(vecs, frame);
+          g.expanded = false;
           g.name = feature.name;
         } else {
           const vec = await makeCountryVector(feature.d, feature.name);

@@ -39,15 +39,27 @@ const datasets = {
   },
 } as const;
 
+// State
 let dataset = datasets.visionscarto;
+let showGraticules = true;
 
 document
-  .querySelector('[data-target="dataset-selector"]')
+  .querySelector('[data-target="graticule-checkbox"]')!
+  .addEventListener("change", (e) => {
+    console.log(e.target.checked);
+    showGraticules = !!(e.target as HTMLInputElement).checked;
+    render({ update: true, dragging: false });
+  });
+
+document
+  .querySelector('[data-target="dataset-selector"]')!
   .addEventListener("change", (e) => {
     const value = (e.target as HTMLSelectElement).value;
     dataset = datasets[value] || dataset;
     render({ update: true, dragging: false });
   });
+
+const graticule = d3.geoGraticule();
 
 const projection = d3.geoOrthographic().precision(0.1);
 
@@ -68,7 +80,19 @@ function render({
   update: boolean;
   dragging?: boolean;
 }) {
-  d3.select(d3.select(elem).select("g#content").node())
+  const contentRoot = d3.select(elem).select("g#content").node();
+
+  d3.select(contentRoot)
+    .selectAll("path.graticule")
+    .data([graticule()])
+    .join("path")
+    .attr("class", "graticule")
+    .attr("stroke", "#ccc")
+    .attr("stroke-width", "1")
+    .attr("fill", "none")
+    .attr("d", path as any);
+
+  d3.select(contentRoot)
     .selectAll("path.country")
     .data(
       dragging ? dataset.lo.features : dataset.hi.features,
@@ -88,6 +112,15 @@ function render({
       {
         pluginMessage: {
           type: "CREATE",
+          graticules:
+            showGraticules &&
+            graticule().coordinates.flatMap((coordinates) => {
+              const d = path({
+                type: "LineString",
+                coordinates,
+              });
+              return d ? [d] : [];
+            }),
           features: dataset.hi.features.flatMap((f) => {
             // Countries with multiple polygons should be separate
             // shapes. d3 will generate complex polygons here - we

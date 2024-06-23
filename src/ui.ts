@@ -41,12 +41,11 @@ const datasets = {
 
 // State
 let dataset = datasets.visionscarto;
-let showGraticules = true;
+let showGraticules = false;
 
 document
   .querySelector('[data-target="graticule-checkbox"]')!
   .addEventListener("change", (e) => {
-    console.log(e.target.checked);
     showGraticules = !!(e.target as HTMLInputElement).checked;
     render({ update: true, dragging: false });
   });

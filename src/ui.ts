@@ -86,7 +86,10 @@ function render({
     .data([graticule()])
     .join("path")
     .attr("class", "graticule")
-    .attr("stroke", "#ccc")
+    // TODO: there would be some marginal perf win from
+    // not rendering graticules when they're toggled off instead
+    // of hiding them like this.
+    .attr("stroke", showGraticules ? "#ccc" : "transparent")
     .attr("stroke-width", "1")
     .attr("fill", "none")
     .attr("d", path as any);

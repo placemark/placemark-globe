@@ -1,22 +1,22 @@
 {
   "name": "placemark-global",
   "dependencies": {
-    "d3": "^7.8.5",
-    "d3-geo": "^3.1.0",
+    "d3": "^7.9.0",
+    "d3-geo": "^3.1.1",
     "topojson-client": "^3.1.0"
   },
   "devDependencies": {
     "@figma/eslint-plugin-figma-plugins": "^0.15.0",
-    "@figma/plugin-typings": "^1.88.0",
+    "@figma/plugin-typings": "^1.96.0",
     "@types/d3": "^7.4.3",
     "@types/d3-geo": "^3.1.0",
     "@types/topojson-client": "^3.1.4",
-    "@typescript-eslint/eslint-plugin": "^7.2.0",
-    "@typescript-eslint/parser": "^7.2.0",
-    "eslint": "^8.57.0",
-    "typescript": "^5.3.3",
-    "vite": "^5.1.6",
-    "vite-plugin-singlefile": "^2.0.1"
+    "@typescript-eslint/eslint-plugin": "^7.13.1",
+    "@typescript-eslint/parser": "^7.13.1",
+    "eslint": "^9.5.0",
+    "typescript": "^5.5.2",
+    "vite": "^5.3.1",
+    "vite-plugin-singlefile": "^2.0.2"
   },
   "scripts": {
     "dev": "vite",
